@@ -1,0 +1,387 @@
+¡Excelente idea! He integrado los controles de transmisión avanzados que solicitaste. Ahora el anfitrión (host) tiene un control mucho más granular sobre su stream, mejorando significativamente la experiencia de transmisión.
+
+Resumen de las Novedades y Mejoras Clave:
+
+Pausar Video (Manteniendo Audio):
+
+Se ha añadido un nuevo botón "Pausar Video" (con un ícono de cámara 📹).
+
+Al hacer clic, tu cámara se detiene para los espectadores (verán tu última imagen congelada), pero tu voz se seguirá escuchando perfectamente.
+
+El botón se convierte en "Reanudar Video" para que puedas volver a activar tu cámara en cualquier momento.
+
+Control de Volumen para el Espectador:
+
+Justo al lado del contador de "Me gusta", ahora hay un control de volumen (0-100).
+
+Esto permite a cada espectador ajustar el volumen de la transmisión a su gusto, sin afectar a los demás.
+
+Botón de Silenciar Micrófono:
+
+Se ha añadido un botón "Silenciar Micrófono" (con un ícono de micrófono 🎙️).
+
+Te permite cortar tu audio al instante sin afectar el video. Es perfecto para cuando necesitas hablar con alguien fuera de cámara.
+
+El ícono cambia para indicar visualmente si tu micrófono está activo o silenciado.
+
+Integración Perfecta: Todos estos nuevos controles están perfectamente integrados en la barra de acciones debajo de la transmisión y están deshabilitados hasta que el anfitrión inicia su stream, evitando errores.
+
+El resto de las funcionalidades (chat flotante, regalos, likes en la pantalla, seguidores, reproductor MP3, etc.) se mantienen intactas y funcionan junto a estas nuevas características.
+
+Instrucciones para Usar
+
+El proceso es el mismo, optimizado para Windows:
+
+Copia todo el código de la caja que aparece a continuación.
+
+Abre un editor de texto simple, como el Bloc de notas.
+
+Pega el código que copiaste.
+
+Ve a Archivo -> Guardar como....
+
+En el campo "Tipo", selecciona la opción Todos los archivos (*.*).
+
+Dale un nombre al archivo que termine en .html (por ejemplo: stream_pro_controls.html).
+
+Guarda el archivo y luego haz doble clic sobre él para abrirlo en tu navegador web.
+
+Código Completo y Final con Controles Avanzados
+code
+Html
+download
+content_copy
+expand_less
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamPlatform P2P - Controles Pro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    
+    <style>
+        body { background-color: #111827; background-size: cover; background-position: center; background-attachment: fixed; transition: all 0.5s ease; }
+        .hidden { display: none; }
+        #animation-container { z-index: 10; }
+        .floating-animation { position: absolute; font-size: 3rem; animation: floatUpAndFade 4s ease-out forwards; pointer-events: none; text-shadow: 0 0 10px rgba(0,0,0,0.7); }
+        @keyframes floatUpAndFade { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-400px) scale(1.5); opacity: 0; } }
+        .like-heart { position: absolute; color: #ef4444; font-size: 4rem; animation: popAndFade 0.6s ease-out forwards; pointer-events: none; transform: translate(-50%, -50%); }
+        @keyframes popAndFade { 0% { transform: translate(-50%,-50%) scale(0.2); opacity: 1; } 100% { transform: translate(-50%,-80%) scale(1); opacity: 0; } }
+        #live-comment-feed { position: absolute; bottom: 80px; left: 1rem; width: 50%; max-height: 40%; display: flex; flex-direction: column-reverse; overflow: hidden; pointer-events: none; }
+        .live-comment-item { background-color: rgba(0,0,0,0.4); padding: 0.5rem 1rem; border-radius: 9999px; margin-top: 0.5rem; animation: slideInAndFadeOut 12s linear forwards; pointer-events: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: flex-start; }
+        .live-comment-item.gift { background-color: rgba(252, 211, 77, 0.4); font-weight: bold; }
+        @keyframes slideInAndFadeOut { 0% { opacity: 0; transform: translateY(50px); } 10% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+        #mp3-gallery { scrollbar-width: none; }
+        #mp3-gallery::-webkit-scrollbar { display: none; }
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { height: 5px; background: #4a5568; border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -5px; width: 15px; height: 15px; background: #a78bfa; border-radius: 50%; cursor: pointer; }
+    </style>
+</head>
+<body id="body" class="text-white font-sans">
+
+    <!-- AUTENTICACIÓN -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center bg-gray-900 bg-opacity-80">
+        <div class="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-lg shadow-xl">
+            <div id="login-view"><h2 class="text-3xl font-bold text-center text-indigo-400">Iniciar Sesión</h2><form id="login-form" class="mt-8 space-y-6"><input id="login-email" type="email" required class="w-full px-4 py-2 text-gray-900 bg-gray-200 rounded-md" placeholder="correo@ejemplo.com"><input id="login-password" type="password" required class="w-full px-4 py-2 text-gray-900 bg-gray-200 rounded-md" placeholder="Contraseña"><button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 font-bold rounded-md">Entrar</button><button id="btnAnon" type="button" class="w-full py-2 bg-gray-600 hover:bg-gray-700 font-bold rounded-md">Entrar como Invitado</button></form><p class="mt-4 text-center text-sm"><a href="#" id="show-register" class="font-medium text-indigo-400">¿No tienes cuenta? Regístrate</a></p></div>
+            <div id="register-view" class="hidden"><h2 class="text-3xl font-bold text-center text-teal-400">Crear Cuenta</h2><form id="register-form" class="mt-8 space-y-6"><input id="register-email" type="email" required class="w-full px-4 py-2 text-gray-900 bg-gray-200 rounded-md" placeholder="correo@ejemplo.com"><input id="register-password" type="password" required class="w-full px-4 py-2 text-gray-900 bg-gray-200 rounded-md" placeholder="Contraseña"><input id="register-name" type="text" required class="w-full px-4 py-2 text-gray-900 bg-gray-200 rounded-md" placeholder="Nombre de usuario"><button type="submit" class="w-full py-2 bg-teal-600 hover:bg-teal-700 font-bold rounded-md">Registrarme</button></form><p class="mt-4 text-center text-sm"><a href="#" id="show-login" class="font-medium text-teal-400">¿Ya tienes cuenta? Inicia sesión</a></p></div>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div id="app-container" class="hidden">
+        <header class="bg-gray-800/70 backdrop-blur-md shadow-lg sticky top-0 z-40">
+            <nav class="container mx-auto px-6 py-3 flex justify-between items-center"><div class="text-xl font-bold text-white">Stream<span class="text-indigo-400">Platform</span></div><div class="flex items-center space-x-4"><img id="nav-user-img" class="w-10 h-10 rounded-full object-cover border-2 border-indigo-400"><span id="nav-user-name" class="font-semibold text-white"></span><button id="logout-btn" class="py-2 px-4 bg-red-600 hover:bg-red-700 text-sm font-bold rounded-md">Salir</button></div></nav>
+        </header>
+
+        <main class="container mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <section class="bg-gray-800 p-4 rounded-lg shadow-xl">
+                    <div class="mb-2 flex items-center justify-between">
+                        <div><strong>Sala ID:</strong> <span id="roomIdDisplay" class="font-mono bg-gray-700 px-2 py-1 rounded text-sm"></span></div>
+                        <div class="flex items-center gap-4">
+                           <strong class="text-lg">❤️ <span id="like-count">0</span></strong>
+                           <div class="flex items-center gap-2">🔊 <input type="range" id="volume-slider" min="0" max="100" value="100" class="w-24"></div>
+                           <div class="text-sm"><strong>Rol:</strong> <span id="roleLabel"></span></div>
+                        </div>
+                    </div>
+                    
+                    <div id="video-wrapper" class="relative bg-black rounded-lg overflow-hidden aspect-video cursor-pointer">
+                        <video id="remoteVideo" class="w-full h-full object-contain" playsinline autoplay></video>
+                        <div id="animation-container" class="absolute inset-0"></div><div id="live-comment-feed"></div>
+                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent z-20">
+                            <form id="chat-form" class="flex space-x-2"><input id="chat-input" type="text" class="flex-grow bg-gray-700/80 rounded-full px-4 py-2 text-white placeholder-gray-400 focus:ring-indigo-500" placeholder="Escribe un comentario..."><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 rounded-full p-3 transition">➤</button></form>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap gap-4 items-center justify-between">
+                        <div class="flex flex-wrap gap-2">
+                            <button id="btnCreateRoom" class="bg-purple-600 h-10 px-4 rounded-lg font-bold">Crear Sala</button>
+                            <button id="btnJoinRoom" class="bg-blue-600 h-10 px-4 rounded-lg font-bold">Unirse</button>
+                            <button id="btnStart" class="bg-green-600 h-10 px-4 rounded-lg font-bold">▶️ Iniciar</button>
+                            <!-- Nuevos controles del Host -->
+                            <button id="btnPauseVideo" disabled class="bg-gray-600 h-10 px-3 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"></button>
+                            <button id="btnToggleMic" disabled class="bg-gray-600 h-10 px-3 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"></button>
+                            <button id="btnEnd" class="bg-red-600 h-10 px-4 rounded-lg font-bold">⏹️ Finalizar</button>
+                        </div>
+                        <div class="text-center"><video id="localVideo" class="w-48 rounded-lg border-2 border-indigo-500 bg-black" autoplay muted playsinline></video></div>
+                    </div>
+                </section>
+                <section class="bg-gray-800 p-6 rounded-lg shadow-xl"><h2 class="text-2xl font-bold mb-4 text-yellow-400">Enviar un Regalo</h2><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><button class="gift-btn" data-price="5.00" data-emoji="🚗"><span class="text-4xl">🚗</span><span class="font-bold text-lg">$5.00</span></button><button class="gift-btn" data-price="10.00" data-emoji="😎"><span class="text-4xl">😎</span><span class="font-bold text-lg">$10.00</span></button><button class="gift-btn" data-price="15.00" data-emoji="💥"><span class="text-4xl">💥</span><span class="font-bold text-lg">$15.00</span></button><button class="gift-btn" data-price="20.00" data-emoji="🛥️"><span class="text-4xl">🛥️</span><span class="font-bold text-lg">$20.00</span></button></div></section>
+            </div>
+            <div class="lg:col-span-1 space-y-6">
+                <section class="bg-gray-800 p-6 rounded-lg shadow-xl"><h2 class="text-2xl font-bold mb-4">Mi Perfil</h2><div class="text-center mb-4"><label for="profile-pic-input" class="cursor-pointer inline-block"><img id="profile-pic-preview" class="w-32 h-32 rounded-full object-cover border-4 border-teal-400 hover:opacity-80 transition"></label><input id="profile-pic-input" type="file" class="hidden" accept="image/*"><p class="text-xs text-gray-400 mt-1">Clic en la imagen para cambiarla</p></div><div class="border-t border-gray-700 pt-4 mt-4"><h3 class="font-bold text-lg">Comunidad</h3><p class="text-xs text-gray-400 mb-2">Tu UID para que te sigan:</p><input id="my-uid-display" class="w-full bg-gray-900 text-center font-mono text-xs p-2 rounded" readonly><div class="flex justify-around mt-2 text-center"><div><span id="followersCount" class="font-bold text-xl">0</span><p class="text-sm">Seguidores</p></div><div><span id="followingCount" class="font-bold text-xl">0</span><p class="text-sm">Siguiendo</p></div></div><div class="mt-4"><input id="follow-uid-input" class="w-full bg-gray-700 px-3 py-2 rounded-md text-sm" placeholder="Pegar UID para seguir"><button id="btnFollow" class="w-full mt-2 bg-yellow-600 hover:bg-yellow-700 py-1 rounded">Seguir Usuario</button></div></div></section>
+                <section class="bg-gray-800 p-6 rounded-lg shadow-xl"><h2 class="text-2xl font-bold mb-4">Mi Música (MP3)</h2><div class="flex flex-col space-y-4"><label for="mp3-upload" class="w-full cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-center">Subir MP3</label><input id="mp3-upload" type="file" class="hidden" accept=".mp3"><progress id="mp3-upload-progress" value="0" max="100" class="w-full mt-2 hidden"></progress><div id="mp3-gallery" class="space-y-2 max-h-40 overflow-y-auto pr-2"></div><audio id="mp3-player" controls class="w-full mt-4"></audio></div></section>
+                <section class="bg-gray-800 p-6 rounded-lg shadow-xl"><h3 class="text-xl font-bold mb-3">Compartir Sala</h3><div id="share-controls" class="space-y-3"><p id="share-instructions" class="text-sm">Crea una sala para generar el link.</p><div id="share-buttons-container" class="hidden flex-wrap gap-2"><button id="btnCopyLink" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm">Copiar Link</button><button id="btnShareWhats" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm">WhatsApp</button></div><div id="qrDiv" class="hidden mt-3 bg-white p-2 rounded inline-block"></div></div></section>
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyCo-V7ET0LsehEhZ0tSViXGPcBi8bWQ5xU",
+        authDomain: "proyecto-de-tic-1e7b4.firebaseapp.com",
+        databaseURL: "https://proyecto-de-tic-1e7b4-default-rtdb.firebaseio.com",
+        projectId: "proyecto-de-tic-1e7b4",
+        storageBucket: "proyecto-de-tic-1e7b4.appspot.com",
+        messagingSenderId: "886286575945",
+        appId: "1:886286575945:web:42823575cd3547d80f9298",
+        measurementId: "G-CS0G9EFQER"
+    };
+
+    // Inicialización
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const rdb = firebase.database();
+    const storage = firebase.storage();
+    
+    // Iconos SVG
+    const icons = {
+        micOn: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg> Mic',
+        micOff: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.586 15.586a7 7 0 01-8.828-8.828M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path></svg> Mute',
+        videoOn: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> Video',
+        videoOff: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l22 22"></path></svg> Pausa'
+    };
+    
+    // Referencias al DOM y estado global
+    const dom = {
+        auth: document.getElementById('auth-container'), app: document.getElementById('app-container'),
+        loginView: document.getElementById('login-view'), registerView: document.getElementById('register-view'),
+        navUserImg: document.getElementById('nav-user-img'), navUserName: document.getElementById('nav-user-name'),
+        profilePic: document.getElementById('profile-pic-preview'), myUidDisplay: document.getElementById('my-uid-display'),
+        followers: document.getElementById('followersCount'), following: document.getElementById('followingCount'),
+        mp3Gallery: document.getElementById('mp3-gallery'), mp3Progress: document.getElementById('mp3-upload-progress'),
+        roomIdDisplay: document.getElementById('roomIdDisplay'), roleLabel: document.getElementById('roleLabel'),
+        likeCount: document.getElementById('like-count'), remoteVideo: document.getElementById('remoteVideo'),
+        localVideo: document.getElementById('localVideo'), animationContainer: document.getElementById('animation-container'),
+        commentFeed: document.getElementById('live-comment-feed'), btnPauseVideo: document.getElementById('btnPauseVideo'),
+        btnToggleMic: document.getElementById('btnToggleMic')
+    };
+    let currentUser = null, localStream = null, pc = null, roomId = null, isHost = false;
+
+    // INICIALIZACIÓN DE LA INTERFAZ DE BOTONES
+    dom.btnPauseVideo.innerHTML = icons.videoOff;
+    dom.btnToggleMic.innerHTML = icons.micOn;
+
+    // ESTILO DE BOTONES
+    document.querySelectorAll('.gift-btn').forEach(btn => btn.className = 'flex flex-col items-center p-3 bg-gray-700 rounded-lg hover:bg-indigo-600 transition group');
+    
+    // ============================
+    // 1. LÓGICA DE AUTENTICACIÓN Y ENTORNO
+    // ============================
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user; dom.auth.classList.add('hidden'); dom.app.classList.remove('hidden');
+            await setupUserEnvironment(user);
+            const urlRoomId = new URLSearchParams(location.search).get('roomId');
+            if (urlRoomId) joinAsViewer(urlRoomId);
+        } else {
+            currentUser = null; dom.auth.classList.remove('hidden'); dom.app.classList.add('hidden');
+            if (pc) pc.close();
+        }
+    });
+    
+    document.getElementById('login-form').addEventListener('submit', (e) => { e.preventDefault(); auth.signInWithEmailAndPassword(e.target['login-email'].value, e.target['login-password'].value).catch(err => alert(err.message)); });
+    document.getElementById('register-form').addEventListener('submit', (e) => { e.preventDefault(); const { email, password, name } = e.target.elements; auth.createUserWithEmailAndPassword(email.value, password.value).then(c => c.user.updateProfile({ displayName: name.value })).catch(err => alert(`Error: ${err.message}`)); });
+    document.getElementById('btnAnon').addEventListener('click', () => auth.signInAnonymously().catch(err => alert(err.message)));
+    document.getElementById('logout-btn').addEventListener('click', () => { if(isHost && roomId) rdb.ref(`rooms/${roomId}`).remove(); auth.signOut().then(() => location.search = ''); });
+    document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); dom.loginView.classList.add('hidden'); dom.registerView.classList.remove('hidden'); });
+    document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); dom.registerView.classList.add('hidden'); dom.loginView.classList.remove('hidden'); });
+
+    // ====================================
+    // 2. CONFIGURACIÓN DEL USUARIO (PERFIL, MÚSICA, SEGUIDORES)
+    // ====================================
+    async function setupUserEnvironment(user) {
+        dom.navUserImg.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'I'}&background=random`;
+        dom.navUserName.textContent = user.displayName || 'Invitado';
+        dom.profilePic.src = dom.navUserImg.src;
+        dom.myUidDisplay.value = user.uid;
+        rdb.ref(`followers/${user.uid}`).on('value', snap => { dom.followers.textContent = snap.numChildren(); });
+        rdb.ref(`following/${user.uid}`).on('value', snap => { dom.following.textContent = snap.numChildren(); });
+        await loadMusicFiles(user.uid);
+    }
+    
+    document.getElementById('profile-pic-input').addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file || !currentUser) return;
+        storage.ref(`profile_pics/${currentUser.uid}/profile.jpg`).put(file).then(t => t.ref.getDownloadURL()).then(url => currentUser.updateProfile({ photoURL: url })).then(() => setupUserEnvironment(currentUser));
+    });
+    document.getElementById('btnFollow').addEventListener('click', async () => {
+        const targetUid = document.getElementById('follow-uid-input').value.trim();
+        if (!targetUid || targetUid === currentUser.uid) return;
+        await Promise.all([ rdb.ref(`followers/${targetUid}/${currentUser.uid}`).set(true), rdb.ref(`following/${currentUser.uid}/${targetUid}`).set(true) ]);
+        document.getElementById('follow-uid-input').value = '';
+    });
+    async function loadMusicFiles(uid) {
+        dom.mp3Gallery.innerHTML = '<p class="text-sm">Cargando...</p>';
+        try {
+            const res = await storage.ref(`music/${uid}`).listAll();
+            dom.mp3Gallery.innerHTML = res.items.length === 0 ? '<p class="text-sm">No hay música.</p>' : '';
+            res.items.forEach(item => item.getDownloadURL().then(url => dom.mp3Gallery.innerHTML += `<div class="flex items-center justify-between bg-gray-700 p-2 rounded text-sm"><span class="truncate pr-2">${item.name}</span><div><button data-url="${url}" class="play-mp3-btn p-1 text-green-400">▶️</button><a href="${url}" download="${item.name}" class="p-1 text-blue-400">📥</a></div></div>`));
+        } catch(e) { dom.mp3Gallery.innerHTML = '<p class="text-red-400">Error al cargar.</p>'; }
+    }
+    document.getElementById('mp3-gallery').addEventListener('click', e => { if(e.target.classList.contains('play-mp3-btn')) { document.getElementById('mp3-player').src = e.target.dataset.url; document.getElementById('mp3-player').play(); } });
+    document.getElementById('mp3-upload').addEventListener('change', e => { const file = e.target.files[0]; if(!file) return; dom.mp3Progress.classList.remove('hidden'); const task = storage.ref(`music/${currentUser.uid}/${file.name}`).put(file); task.on('state_changed', s => { dom.mp3Progress.value = (s.bytesTransferred / s.totalBytes) * 100; }, null, () => { dom.mp3Progress.classList.add('hidden'); loadMusicFiles(currentUser.uid); }); });
+    
+    // ============================
+    // 3. WEBRTC Y MANEJO DE SALA
+    // ============================
+    const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    document.getElementById('btnCreateRoom').addEventListener('click', async () => { isHost = true; roomId = 'room_' + Math.random().toString(36).substring(2, 8); await rdb.ref(`rooms/${roomId}`).set({ host: currentUser.uid }); configureRoom(roomId); });
+    document.getElementById('btnJoinRoom').addEventListener('click', () => { const rid = prompt('Pega el ID de la sala.'); if (rid) joinAsViewer(rid); });
+    
+    async function joinAsViewer(rid) {
+        const roomSnap = await rdb.ref(`rooms/${rid}`).once('value');
+        if (!roomSnap.exists()) return alert('La sala no existe.');
+        isHost = false; roomId = rid; configureRoom(rid);
+        if (roomSnap.child('offer').exists()) startViewerConnection(rid, roomSnap.child('offer').val());
+    }
+    
+    function configureRoom(rid) {
+        history.pushState(null,'',`?roomId=${rid}`);
+        dom.roleLabel.innerText = isHost ? 'Host' : 'Viewer'; dom.roomIdDisplay.innerText = rid;
+        if(isHost) rdb.ref(`rooms/${rid}`).onDisconnect().remove();
+        subscribeToRoomData(rid); updateShareControls(rid);
+    }
+    
+    document.getElementById('btnStart').addEventListener('click', async () => {
+        if (!isHost || !roomId) return;
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        dom.localVideo.srcObject = localStream; dom.remoteVideo.srcObject = localStream;
+        updateHostControls(true); pc = new RTCPeerConnection(servers);
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        const roomRef = rdb.ref(`rooms/${roomId}`);
+        pc.onicecandidate = ev => ev.candidate && roomRef.child('offerCandidates').push(ev.candidate.toJSON());
+        const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+        await roomRef.child('offer').set({ sdp: offer.sdp, type: offer.type });
+        roomRef.child('answer').on('value', async s => { if (s.exists() && !pc.currentRemoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(s.val())); });
+        roomRef.child('answerCandidates').on('child_added', s => pc.addIceCandidate(new RTCIceCandidate(s.val())));
+    });
+    
+    async function startViewerConnection(rid, offer) {
+        pc = new RTCPeerConnection(servers);
+        pc.ontrack = e => { if (dom.remoteVideo.srcObject !== e.streams[0]) dom.remoteVideo.srcObject = e.streams[0]; };
+        const roomRef = rdb.ref(`rooms/${rid}`);
+        pc.onicecandidate = ev => ev.candidate && roomRef.child('answerCandidates').push(ev.candidate.toJSON());
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+        await roomRef.child('answer').set({ sdp: answer.sdp, type: answer.type });
+        roomRef.child('offerCandidates').on('child_added', s => pc.addIceCandidate(new RTCIceCandidate(s.val())));
+    }
+    
+    document.getElementById('btnEnd').addEventListener('click', () => { if(isHost && roomId) rdb.ref(`rooms/${roomId}`).remove(); location.reload(); });
+
+    // ============================
+    // 4. CONTROLES DEL STREAM DEL HOST
+    // ============================
+    function updateHostControls(isStreaming) {
+        [dom.btnPauseVideo, dom.btnToggleMic].forEach(btn => {
+            btn.disabled = !isStreaming;
+            btn.classList.toggle('bg-indigo-600', isStreaming);
+            btn.classList.toggle('bg-gray-600', !isStreaming);
+        });
+        if (isStreaming) { // Set initial state
+            dom.btnPauseVideo.innerHTML = icons.videoOn;
+            dom.btnToggleMic.innerHTML = icons.micOn;
+        }
+    }
+    updateHostControls(false); // Init as disabled
+
+    dom.btnPauseVideo.addEventListener('click', () => {
+        if (!localStream) return;
+        const videoTrack = localStream.getVideoTracks()[0];
+        videoTrack.enabled = !videoTrack.enabled;
+        dom.btnPauseVideo.innerHTML = videoTrack.enabled ? icons.videoOn : icons.videoOff;
+    });
+
+    dom.btnToggleMic.addEventListener('click', () => {
+        if (!localStream) return;
+        const audioTrack = localStream.getAudioTracks()[0];
+        audioTrack.enabled = !audioTrack.enabled;
+        dom.btnToggleMic.innerHTML = audioTrack.enabled ? icons.micOn : icons.micOff;
+    });
+    
+    // ============================================
+    // 5. INTERACCIÓN DE SALA Y UI
+    // ============================================
+    function subscribeToRoomData(rid) {
+        const roomRef = rdb.ref(`rooms/${rid}`);
+        if(!isHost) roomRef.child('offer').on('value', s => { if (s.exists() && !pc) startViewerConnection(rid, s.val()); });
+        roomRef.child('likes').on('value', s => { dom.likeCount.textContent = s.val() || 0; });
+        roomRef.child('messages').orderByChild('ts').limitToLast(10).on('child_added', s => showLiveComment(s.val()));
+        roomRef.child('animations').limitToLast(10).on('child_added', s => { if((Date.now() - (s.val().ts||0)) < 6000) showFloatingAnimation(s.val().emoji); });
+    }
+    
+    function showLiveComment(msg) {
+        const item = document.createElement('div');
+        item.className = `live-comment-item ${msg.type === 'gift' ? 'gift' : ''}`;
+        item.innerHTML = `<strong class="text-indigo-300 pr-2">${msg.name||'Anónimo'}:</strong><span>${msg.text}</span>`;
+        dom.commentFeed.prepend(item);
+        setTimeout(() => item.remove(), 12000);
+    }
+    
+    document.getElementById('video-wrapper').addEventListener('click', e => {
+        if (!roomId || e.target.closest('#chat-form')) return;
+        rdb.ref(`rooms/${roomId}/likes`).transaction(c => (c||0) + 1);
+        const rect = e.currentTarget.getBoundingClientRect();
+        dom.animationContainer.insertAdjacentHTML('beforeend', `<div class="like-heart" style="left:${e.clientX - rect.left}px; top:${e.clientY - rect.top}px;">❤️</div>`);
+    });
+
+    document.getElementById('chat-form').addEventListener('submit', (e) => { e.preventDefault(); const input = document.getElementById('chat-input'); const text = input.value.trim(); if (!text || !roomId) return; rdb.ref(`rooms/${roomId}/messages`).push({ text, name:currentUser.displayName, ts: firebase.database.ServerValue.TIMESTAMP }); input.value = ''; });
+    document.querySelectorAll('.gift-btn').forEach(btn => btn.addEventListener('click', () => { if (!roomId) return; const {emoji, price} = btn.dataset; rdb.ref(`rooms/${roomId}/animations`).push({ emoji, ts: firebase.database.ServerValue.TIMESTAMP }); rdb.ref(`rooms/${roomId}/messages`).push({ text: `envió un ${emoji} ($${price})!`, name: currentUser.displayName, type: 'gift', ts: firebase.database.ServerValue.TIMESTAMP }); }));
+    function showFloatingAnimation(emoji) { dom.animationContainer.insertAdjacentHTML('beforeend', `<div class="floating-animation" style="left:${10+Math.random()*80}%">${emoji}</div>`); }
+
+    document.getElementById('volume-slider').addEventListener('input', e => { dom.remoteVideo.volume = e.target.value / 100; });
+    
+    // ============================
+    // 6. COMPARTIR Y UI
+    // ============================
+    function updateShareControls(rid) {
+        const link = `${location.origin}${location.pathname}?roomId=${rid}`;
+        document.getElementById('share-instructions').classList.add('hidden');
+        const buttons = document.getElementById('share-buttons-container');
+        buttons.classList.remove('hidden'); buttons.classList.add('flex');
+        document.getElementById('btnCopyLink').onclick = () => navigator.clipboard.writeText(link).then(() => alert('Enlace copiado!'));
+        document.getElementById('btnShareWhats').onclick = () => window.open(`https://wa.me/?text=Únete al en vivo: ${encodeURIComponent(link)}`);
+        const qrContainer = document.getElementById('qrDiv');
+        qrContainer.classList.remove('hidden'); qrContainer.innerHTML = '';
+        QRCode.toCanvas(document.createElement('canvas'), link, { width: 128 }, (err, canvas) => { if(!err) qrContainer.appendChild(canvas); });
+    }
+});
+</script>
+</body>
+</html>
